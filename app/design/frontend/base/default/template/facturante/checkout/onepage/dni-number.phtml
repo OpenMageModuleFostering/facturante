@@ -1,0 +1,18 @@
+<?php
+    $_dniNumber = '';
+    if (Mage::getSingleton('customer/session')->isLoggedIn())
+    {
+        $_customer = Mage::getSingleton('customer/session')->getCustomer();
+
+        $_dniNumber = $_customer->getResource()
+            ->getAttribute('dni_number')
+            ->getFrontend()
+            ->getValue($_customer);
+    }
+?>
+<div class="field">
+    <label for="billing:dni_number_address"><?php echo $this->__('Número de DNI / CUIT') ?></label>
+    <div class="input-box">
+        <input type="text" name="billing[dni_number_address]" id="billing:dni_number_address" title="<?php echo $this->quoteEscape($this->__('Número de DNI / CUIT')) ?>" class="input-text" value="<?php echo $_dniNumber ?>" />
+    </div>
+</div>

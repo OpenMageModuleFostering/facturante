@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<layout>
+    <customer_account_create>
+        <reference name="customer_form_register">
+            <action method="setTemplate">
+                <template>facturante/customer/register.phtml</template>
+            </action>
+        </reference>
+    </customer_account_create>
+    <customer_account_edit>
+        <reference name="customer_edit">
+            <action method="setTemplate">
+                <template>facturante/customer/account/form/edit.phtml</template>
+            </action>
+        </reference>
+    </customer_account_edit>
+    <customer_address_form>
+        <reference name="customer_address_edit">
+            <action method="setTemplate">
+                <template>facturante/customer/account/address/edit.phtml</template>
+            </action>
+        </reference>
+    </customer_address_form>
+    <checkout_onepage_index>
+        <reference name='checkout.onepage.billing'>
+            <block type='checkout/onepage_billing' name='form.additional.info' template='facturante/checkout/onepage/dni-number.phtml'></block>
+        </reference>
+    </checkout_onepage_index>
+</layout>

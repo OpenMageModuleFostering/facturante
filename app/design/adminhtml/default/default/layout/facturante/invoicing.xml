@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<layout>
+    <adminhtml_sales_order_view>
+        <reference name="sales_order_tabs">
+            <action method="addTab">
+                <name>Facturante</name>
+                <block>facturante_invoicing/Adminhtml_Order_View_Tab_Facturante</block>
+            </action>
+        </reference>
+        <reference name="order_info">
+            <action method="setTemplate"><template>facturante/sales/order/view/info.phtml</template></action>
+        </reference>
+    </adminhtml_sales_order_view>
+</layout>

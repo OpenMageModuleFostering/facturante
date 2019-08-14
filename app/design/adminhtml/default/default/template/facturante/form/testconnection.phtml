@@ -1,0 +1,18 @@
+<div id="test_connection_container">
+    <div>
+        <?php
+            $usernameValue = Mage::getStoreConfig('facturante/connection/username');
+            $passwordValue = Mage::getStoreConfig('facturante/connection/password');
+            $businessIdValue = Mage::getStoreConfig('facturante/connection/business_id');
+
+            if($usernameValue != '' && $passwordValue != '' && $businessIdValue != ''): ?>
+            <?php if ($this->getSuccessfulApiConnection()): ?>
+                <div style="color: green; font-weight: bold;"><?php echo $this->__('Conexión exitosamente establecida') ?></div>
+            <?php else: ?>
+                <div style="color: red; font-weight: bold;"><?php echo $this->__('No se pudo establecer una conexión con Facturante con las credenciales configuradas. Por favor revise sus credenciales y vuelva a intentarlo.') ?></div>
+            <?php endif ?>
+        <?php else: ?>
+                <div><?php echo $this->__('Agregue sus credenciales de Facturante y guarde esta página para configurar el módulo de Facturante') ?></div>
+        <?php endif ?>
+    </div>
+</div>

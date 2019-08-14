@@ -1,0 +1,22 @@
+<?php
+$_element = $this->getElement();
+?>
+<?php if ($_element->getFieldsetContainerId()): ?>
+<div id="<?php echo $_element->getFieldsetContainerId(); ?>">
+<?php endif; ?>
+<?php if ($_element->getLegend()): ?>
+<div class="entry-edit-head">
+    <h4 class="icon-head head-edit-form fieldset-legend"><?php echo $_element->getLegend() ?></h4>
+    <div class="form-buttons"><?php echo $_element->getHeaderBar() ?></div>
+</div>
+<?php endif; ?>
+<?php if (!$_element->getNoContainer()): ?>
+    <div class="fieldset <?php echo $_element->getClass() ?>" id="<?php echo $_element->getHtmlId() ?>">
+<?php endif; ?>
+        <span style="color: red;font-weight: bold;"><?php echo $this->__('Some error occurs. Please, retry type selection') ?></span>
+<?php if (!$_element->getNoContainer()): ?>
+    </div>
+<?php endif; ?>
+<?php if ($_element->getFieldsetContainerId()): ?>
+</div>
+<?php endif; ?>
