@@ -132,12 +132,26 @@
                 </div>
             </li>
             <li class="fields">
-                <div class="field">
-                    <label for="dni_number_address"><?php echo $this->__('Número de DNI / CUIT') ?></label>
-                    <div class="input-box">
-                        <input type="text" name="dni_number_address" value="<?php echo $this->escapeHtml($this->getAddress()->getDniNumberAddress()) ?>" title="<?php echo Mage::helper('core')->quoteEscape($this->__('Número de DNI / CUIT')) ?>" id="dni_number_address" class="input-text" />
+                <?php
+                /** Si esta seteado en 1 entonces significa que se utiliza el campo TAX/VAT como DNI. */
+                $config_tax_vat = Mage::getStoreConfig('facturante/connection2/campo_tax_vat_dni');
+
+                /** Decido en que campo guardo el numero de documento del customer según sytem config. */
+                if( $config_tax_vat == 1 ) { ?>
+                    <div class="field">
+                        <label for="taxvat"><?php echo $this->__('Número de DNI / CUIT') ?></label>
+                        <div class="input-box">
+                            <input type="text" name="taxvat" id="taxvat" title="<?php echo $this->quoteEscape($this->__('Número de DNI / CUIT')) ?>" class="input-text" />
+                        </div>
                     </div>
-                </div>
+                <?php } else { ?>
+                    <div class="field">
+                        <label for="dni_number_address"><?php echo $this->__('Número de DNI / CUIT') ?></label>
+                        <div class="input-box">
+                            <input type="text" name="dni_number_address" value="<?php echo $this->escapeHtml($this->getAddress()->getDniNumberAddress()) ?>" title="<?php echo Mage::helper('core')->quoteEscape($this->__('Número de DNI / CUIT')) ?>" id="dni_number_address" class="input-text" />
+                        </div>
+                    </div>
+                <?php } ?>
             </li>
             <li<?php if($this->canSetAsDefaultBilling()) echo ' class="control"' ?>>
                 <?php if($this->isDefaultBilling()): ?>

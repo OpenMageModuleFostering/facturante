@@ -2,19 +2,10 @@
 <config>
     <modules>
         <Facturante_Invoicing>
-            <version>0.1.6</version>
+            <version>0.1.8</version>
         </Facturante_Invoicing>
     </modules>
     <adminhtml>
-        <translate>
-            <modules>
-                <Facturante_Invoicing>
-                    <files>
-                        <default>Facturante_Invoicing.csv</default>
-                    </files>
-                </Facturante_Invoicing>
-            </modules>
-        </translate>
         <events>
             <adminhtml_widget_container_html_before>
                 <observers>
@@ -124,14 +115,18 @@
                     <model>facturante_invoicing/CronComprobantesPendientes::actualizarEstadoComprobantes</model>
                 </run>
             </comprobantes_pendientes>
-            <comprobantes_con_error>
-                <schedule>
-                    <cron_expr>*/2 * * * *</cron_expr>
-                </schedule>
-                <run>
-                    <model>facturante_invoicing/CronComprobantesError::callGenerateInvoiceForOrder</model>
-                </run>
-            </comprobantes_con_error>
         </jobs>
     </crontab>
+
+    <!-- Por default seteo el modo de facturación "Factura electronica genérica AFIP RG 2485 o RG 3749" -->
+    <default>
+        <facturante>
+            <connection2>
+                <campo_tax_vat_dni>0</campo_tax_vat_dni>
+            </connection2>
+            <connection5>
+                <modo_gtin>1</modo_gtin>
+            </connection5>
+        </facturante>
+    </default>
 </config>

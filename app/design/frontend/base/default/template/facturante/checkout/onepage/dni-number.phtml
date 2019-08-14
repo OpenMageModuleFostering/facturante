@@ -1,7 +1,6 @@
 <?php
     $_dniNumber = '';
-    if (Mage::getSingleton('customer/session')->isLoggedIn())
-    {
+    if ( Mage::getSingleton('customer/session')->isLoggedIn() ) {
         $_customer = Mage::getSingleton('customer/session')->getCustomer();
 
         $_dniNumber = $_customer->getResource()
@@ -9,10 +8,14 @@
             ->getFrontend()
             ->getValue($_customer);
     }
-?>
+
+/** Si esta seteado en 1 entonces significa que se utiliza el campo TAX/VAT como DNI. */
+$config = Mage::getStoreConfig('facturante/connection2/campo_tax_vat_dni');
+if( $config == 0 ) { ?>
 <div class="field">
     <label for="billing:dni_number_address"><?php echo $this->__('Número de DNI / CUIT') ?></label>
     <div class="input-box">
         <input type="text" name="billing[dni_number_address]" id="billing:dni_number_address" title="<?php echo $this->quoteEscape($this->__('Número de DNI / CUIT')) ?>" class="input-text" value="<?php echo $_dniNumber ?>" />
     </div>
 </div>
+<?php } ?>

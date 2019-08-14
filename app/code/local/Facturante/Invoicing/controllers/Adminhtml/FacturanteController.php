@@ -75,39 +75,58 @@ class Facturante_Invoicing_Adminhtml_FacturanteController extends Mage_Adminhtml
      * @param int $ordenId
      * @param string $type
      */
-    public function commonOrderProcess($ordenId, $type)
-    {
-        // Validar primero que la configuración necesaria desde los system config existe
-        $prefijo = Mage::getStoreConfig('facturante/connection3/prefijo');
-        $tipoFacturacion = Mage::getStoreConfig('facturante/connection3/bienes');
+    public function commonOrderProcess($ordenId, $type) {
 
-        if (!$prefijo)
-        {
+        $order = Mage::getModel('sales/order')->load($ordenId);
+        $storeId = $order->getStoreId();
+
+        // Validar primero que la configuración necesaria desde los system config existe
+        $prefijo = Mage::getStoreConfig('facturante/connection3/prefijo', $storeId);
+        $tipoFacturacion = Mage::getStoreConfig('facturante/connection3/bienes', $storeId);
+
+        if (!$prefijo) {
             Mage::getSingleton('core/session')->addError('Por favor, configure el prefijo AFIP en: Sistema -> Configuración -> Facturante: Prefijo');
             return false;
         }
-        if (!$tipoFacturacion)
-        {
+        if (!$tipoFacturacion) {
             Mage::getSingleton('core/session')->addError('Por favor, configure el tipo de facturación AFIP en: Sistema -> Configuración -> Facturante: Tipo de Facturación');
             return false;
         }
 
-        $order = Mage::getModel('sales/order')->load($ordenId);
-
         if ($order->getId()) {
             $response = Mage::helper('facturante_invoicing')->generateInvoiceForOrder($order, $type);
 
-            if ($response)
-            {
-                $estadoCrearComprobante = $response->CrearComprobanteSinImpuestosResult->Estado;
-                $mensaje = $response->CrearComprobanteSinImpuestosResult->Mensaje;
-                $comprobante = $response->CrearComprobanteSinImpuestosResult->IdComprobante;
+            if ($response) {
+                /**
+                 *  ----- Funcionalidad GTIN -----
+                 *
+                 * @var  $config_modo_facturacion
+                 *
+                 * '' (vacio): No se ha seteado el dato en el sistem config
+                 * 1: Factura Electrónica Genérica  -- AFIP RG 2485 o RG 3749
+                 * 2: Factura Electrónica con Detalle -- (Mtx o Matrix) - RG 2904
+                 *
+                 */
+                $config_modo_facturacion = Mage::getStoreConfig('facturante/connection5/modo_facturacion', $storeId);
+                $estadoCrearComprobante = "";
+                $comprobante = "";
+                $mensaje = "";
+                if( $config_modo_facturacion == 1 ) {
+                    $estadoCrearComprobante = $response->CrearComprobanteSinImpuestosResult->Estado;
+                    $mensaje = $response->CrearComprobanteSinImpuestosResult->Mensaje;
+                    $comprobante = $response->CrearComprobanteSinImpuestosResult->IdComprobante;
+                }
+                if( $config_modo_facturacion == 2 ) {
+                    $estadoCrearComprobante = $response->CrearComprobanteSinImpuestosMtxResult->Estado;
+                    $mensaje = $response->CrearComprobanteSinImpuestosMtxResult->Mensaje;
+                    $comprobante = $response->CrearComprobanteSinImpuestosMtxResult->IdComprobante;
+                }
 
                 if($estadoCrearComprobante == 'OK') {
                     Mage::getSingleton('core/session')->addSuccess('Comprobante Nº'.$comprobante.' generado correctamente para la orden Nº '.$order->getIncrementId().'.');
                 } else {
                     Mage::getSingleton('core/session')->addError('Ha ocurrido un error al intentar generar el comprobante para la orden Nª '.$order->getIncrementId().'.<br>
-                            Detalle: '.$mensaje);
+                    Detalle: '.$mensaje);
                 }
             }
         }

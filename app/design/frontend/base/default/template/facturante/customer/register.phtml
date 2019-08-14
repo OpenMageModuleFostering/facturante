@@ -66,10 +66,6 @@
             <?php if ($_dob->isEnabled()): ?>
                 <li><?php echo $_dob->setDate($this->getFormData()->getDob())->toHtml() ?></li>
             <?php endif ?>
-            <?php $_taxvat = $this->getLayout()->createBlock('customer/widget_taxvat') ?>
-            <?php if ($_taxvat->isEnabled()): ?>
-                <li><?php echo $_taxvat->setTaxvat($this->getFormData()->getTaxvat())->toHtml() ?></li>
-            <?php endif ?>
             <?php $_gender = $this->getLayout()->createBlock('customer/widget_gender') ?>
             <?php if ($_gender->isEnabled()): ?>
                 <li><?php echo $_gender->setGender($this->getFormData()->getGender())->toHtml() ?></li>
@@ -169,12 +165,28 @@
                     </div>
                 </li>
                 <?php echo $this->getChildHtml('form.additional.info'); ?>
-                <div class="field">
-                    <label for="dni_number"><?php echo $this->__('Número de DNI / CUIT') ?></label>
-                    <div class="input-box">
-                        <input type="text" name="dni_number" id="dni_number" title="<?php echo $this->quoteEscape($this->__('Número de DNI / CUIT')) ?>" class="input-text" />
+
+                <?php
+                /** Si esta seteado en 1 entonces significa que se utiliza el campo TAX/VAT como DNI. */
+                $config_tax_vat = Mage::getStoreConfig('facturante/connection2/campo_tax_vat_dni');
+
+                /** Decido en que campo guardo el numero de documento del customer según sytem config. */
+                if( $config_tax_vat == 1 ) { ?>
+                    <div class="field">
+                        <label for="taxvat"><?php echo $this->__('Número de DNI / CUIT') ?></label>
+                        <div class="input-box">
+                            <input type="text" name="taxvat" id="taxvat" value="<?php echo $this->escapeHtml($this->getCustomer()->getTaxvat()) ?>" title="<?php echo $this->quoteEscape($this->__('Número de DNI / CUIT')) ?>" class="input-text" />
+                        </div>
                     </div>
-                </div>
+                <?php } else { ?>
+                    <div class="field">
+                        <label for="dni_number"><?php echo $this->__('Número de DNI / CUIT') ?></label>
+                        <div class="input-box">
+                            <input type="text" name="dni_number" id="dni_number" title="<?php echo $this->quoteEscape($this->__('Número de DNI / CUIT')) ?>" class="input-text" />
+                        </div>
+                    </div>
+                <?php } ?>
+
                 <?php echo $this->getChildHtml('persistent.remember.me'); ?>
             </ul>
             <?php echo $this->getChildHtml('persistent.remember.me.tooltip'); ?>

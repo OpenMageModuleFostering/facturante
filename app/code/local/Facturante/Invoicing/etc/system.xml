@@ -54,6 +54,15 @@
                             <show_in_website>0</show_in_website>
                             <show_in_store>0</show_in_store>
                         </test_connection>
+                        <api_url translate="label">
+                            <label>URL de API</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>facturante_invoicing/system_config_source_dropdown_urlsapi</source_model>
+                            <sort_order>40</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </api_url>
                     </fields>
                 </connection>
 
@@ -87,6 +96,18 @@
                             <show_in_store>1</show_in_store>
                             <comment>Si selecciona "No", entonces se considerarán los precios como netos, y se agregarán los impuestos configurados en Magento. Caso contrario, se tomarán los precios como finales y no se incluirán los impuestos de Magento.</comment>
                         </precios_finales>
+                    </fields>
+                    <fields>
+                        <campo_tax_vat_dni translate="label">
+                            <label>¿Utilizar campo TAX/VAT como DNI?</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>3</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>Si selecciona "Si", entonces se utilizará el campo TAX/VAT de Magento en vez del campo DNI.</comment>
+                        </campo_tax_vat_dni>
                     </fields>
                 </connection2>
                 <!-- FIN - Configuracion General -->
@@ -150,7 +171,7 @@
                     <show_in_store>1</show_in_store>
                     <fields>
                         <configuracion_activada translate="label">
-                            <label>¿Activar configuración automática?</label>
+                            <label>¿Activar facturación automática?</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
                             <sort_order>2</sort_order>
@@ -170,6 +191,37 @@
                     </fields>
                 </connection4>
                 <!-- FIN - Configuracion AFIP -->
+
+                <!-- INICIO - Configuracion funcionalidad GTIN -->
+                <connection5 translate="label">
+                    <label>Configuración GTIN</label>
+                    <frontend_type>text</frontend_type>
+                    <sort_order>16</sort_order>
+                    <show_in_default>1</show_in_default>
+                    <show_in_website>1</show_in_website>
+                    <show_in_store>1</show_in_store>
+                    <fields>
+                        <!--<activar_gtin translate="label">-->
+                            <!--<label>¿ Desea activar el campo GTIN para el detalle de la factura ?</label>-->
+                            <!--<frontend_type>select</frontend_type>-->
+                            <!--<source_model>adminhtml/system_config_source_yesno</source_model>-->
+                            <!--<sort_order>1</sort_order>-->
+                            <!--<show_in_default>1</show_in_default>-->
+                            <!--<show_in_website>1</show_in_website>-->
+                            <!--<show_in_store>1</show_in_store>-->
+                        <!--</activar_gtin>-->
+                        <modo_facturacion translate="label">
+                            <label>Modo de facturación</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>facturante_invoicing/system_config_source_dropdown_modosfacturacion</source_model>
+                            <sort_order>2</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </modo_facturacion>
+                        </fields>
+                </connection5>
+                <!-- FIN - Configuracion funcionalidad GTIN -->
             </groups>
         </facturante>
     </sections>

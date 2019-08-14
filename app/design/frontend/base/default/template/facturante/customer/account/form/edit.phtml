@@ -43,19 +43,31 @@
                     <input type="email" autocapitalize="off" autocorrect="off" spellcheck="false" name="email" id="email" value="<?php echo $this->escapeHtml($this->getCustomer()->getEmail()) ?>" title="<?php echo Mage::helper('core')->quoteEscape($this->__('Email Address')) ?>" class="input-text required-entry validate-email" />
                 </div>
             </li>
-            <li>
-                <label for="dni_number"><?php echo $this->__('Número de DNI / CUIT') ?></label>
-                <div class="input-box">
-                    <input type="text" name="dni_number" id="dni_number" value="<?php echo $this->escapeHtml($this->getCustomer()->getDniNumber()) ?>" title="<?php echo Mage::helper('core')->quoteEscape($this->__('Número de DNI / CUIT')) ?>" class="input-text" />
-                </div>
-            </li>
+
+            <?php
+            /** Si esta seteado en 1 entonces significa que se utiliza el campo TAX/VAT como DNI. */
+            $config_tax_vat = Mage::getStoreConfig('facturante/connection2/campo_tax_vat_dni');
+
+            /** Decido en que campo guardo el numero de documento del customer según sytem config. */
+            if( $config_tax_vat == 1 ) { ?>
+                <li>
+                    <label for="taxvat"><?php echo $this->__('Número de DNI / CUIT') ?></label>
+                    <div class="input-box">
+                        <input type="text" name="taxvat" id="taxvat" value="<?php echo $this->escapeHtml($this->getCustomer()->getTaxvat()) ?>" title="<?php echo $this->quoteEscape($this->__('Número de DNI / CUIT')) ?>" class="input-text" />
+                    </div>
+                </li>
+            <?php } else { ?>
+                <li>
+                    <label for="dni_number"><?php echo $this->__('Número de DNI / CUIT') ?></label>
+                    <div class="input-box">
+                        <input type="text" name="dni_number" id="dni_number" value="<?php echo $this->escapeHtml($this->getCustomer()->getDniNumber()) ?>" title="<?php echo Mage::helper('core')->quoteEscape($this->__('Número de DNI / CUIT')) ?>" class="input-text" />
+                    </div>
+                </li>
+            <?php } ?>
+
         <?php $_dob = $this->getLayout()->createBlock('customer/widget_dob') ?>
         <?php if ($_dob->isEnabled()): ?>
             <li><?php echo $_dob->setDate($this->getCustomer()->getDob())->toHtml() ?></li>
-        <?php endif ?>
-        <?php $_taxvat = $this->getLayout()->createBlock('customer/widget_taxvat') ?>
-        <?php if ($_taxvat->isEnabled()): ?>
-            <li><?php echo $_taxvat->setTaxvat($this->getCustomer()->getTaxvat())->toHtml() ?></li>
         <?php endif ?>
         <?php $_gender = $this->getLayout()->createBlock('customer/widget_gender') ?>
         <?php if ($_gender->isEnabled()): ?>

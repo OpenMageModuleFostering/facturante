@@ -3,13 +3,11 @@
  * @category    Facturante
  * @package     Invoicing
  */
-class Facturante_Invoicing_Model_Observer
-{
+class Facturante_Invoicing_Model_Observer {
     protected $_orderStatusBefore;
     protected $_orderStatusBeforeLabel = '';
 
-    public function adminhtmlWidgetContainerHtmlBefore($event)
-    {
+    public function adminhtmlWidgetContainerHtmlBefore($event) {
         $block = $event->getBlock();
         if ($block instanceof Mage_Adminhtml_Block_Sales_Order_View) {
             $order = Mage::registry('current_order');
@@ -43,49 +41,55 @@ class Facturante_Invoicing_Model_Observer
         }
     }
 
-    public function savePreviousOrderStatus($observer)
-    {
+    public function savePreviousOrderStatus($observer) {
         $order = $observer->getEvent()->getOrder();
         $this->_orderStatusBefore = $order->getOrigData('status');
     }
 
-    public function autogenerateInvoice($observer)
-    {
-        $autoInvoicing = Mage::getStoreConfig('facturante/connection4/configuracion_activada');
+    public function autogenerateInvoice($observer) {
+
+        $order = $observer->getEvent()->getOrder();
+        $storeId = $order->getStoreId();
+
+        $autoInvoicing = Mage::getStoreConfig('facturante/connection4/configuracion_activada', $storeId);
 
         // Si el modo autoinvoicing está activado
-        if ($autoInvoicing)
-        {
-            $order = $observer->getEvent()->getOrder();
+        if ($autoInvoicing) {
             $orderId = $order->getId();
             $newOrderStatus = $order->getData('status');
             $oldOrderStatus = $this->_orderStatusBefore;
 
-            if (!$oldOrderStatus)
-            {
+            if (!$oldOrderStatus) {
                 $oldOrderStatus = 'new-order';
             }
 
-            $autoInvoicingStatus = Mage::getStoreConfig('facturante/connection4/estado_orden');
+            $autoInvoicingStatus = Mage::getStoreConfig('facturante/connection4/estado_orden', $storeId);
 
             // Si el estado en la orden cambió,
             // y el estado de la orden para la autofacturación es el mismo que el estado nuevo
-            if($oldOrderStatus != $newOrderStatus && $newOrderStatus == $autoInvoicingStatus)
-            {
+            if($oldOrderStatus != $newOrderStatus && $newOrderStatus == $autoInvoicingStatus) {
                 // Autogenerar factura para orden
-                if ($orderId)
-                {
+                if ($orderId) {
                     $order = Mage::getModel('sales/order')->load($order->getId());
                     $response = Mage::helper('facturante_invoicing')->generateInvoiceForOrder($order, 'factura');
-                    if ($response)
-                    {
-                        $estadoCrearComprobante = $response->CrearComprobanteSinImpuestosResult->Estado;
-                        $mensaje = $response->CrearComprobanteSinImpuestosResult->Mensaje;
-                        $comprobante = $response->CrearComprobanteSinImpuestosResult->IdComprobante;
+                    if ($response) {
+                        $config_modo_facturacion = Mage::getStoreConfig('facturante/connection5/modo_facturacion', $storeId);
+                        $estadoCrearComprobante = "";
+                        $comprobante = "";
+                        $mensaje = "";
+                        if( $config_modo_facturacion == 1 ) {
+                            $estadoCrearComprobante = $response->CrearComprobanteSinImpuestosResult->Estado;
+                            $mensaje = $response->CrearComprobanteSinImpuestosResult->Mensaje;
+                            $comprobante = $response->CrearComprobanteSinImpuestosResult->IdComprobante;
+                        }
+                        if( $config_modo_facturacion == 2 ) {
+                            $estadoCrearComprobante = $response->CrearComprobanteSinImpuestosMtxResult->Estado;
+                            $mensaje = $response->CrearComprobanteSinImpuestosMtxResult->Mensaje;
+                            $comprobante = $response->CrearComprobanteSinImpuestosMtxResult->IdComprobante;
+                        }
                     }
                 }
             }
-
         }
     }
 }

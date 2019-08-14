@@ -13,13 +13,29 @@ class Facturante_Invoicing_Helper_Data extends Mage_Core_Helper_Abstract
     const FACTURANTE_CODIGO_NOTA_DE_DEBITO = 'debito';
     const FACTURANTE_CODIGO_NOTA_DE_CREDITO = 'credito';
 
-    public function testAPIConnection()
-    {
-        $client = new SoapClient('http://testing.facturante.com/api/Comprobantes.svc?wsdl');
+    public function testAPIConnection() {
+        $storeId = 0;
+        if (strlen($code = Mage::getSingleton('adminhtml/config_data')->getStore())) // store level
+        {
+            $storeId = Mage::getModel('core/store')->load($code)->getId();
+        } elseif (strlen($code = Mage::getSingleton('adminhtml/config_data')->getWebsite())) // website level
+        {
+            $websiteId = Mage::getModel('core/website')->load($code)->getId();
+            $storeId = Mage::app()->getWebsite($websiteId)->getDefaultStore()->getId();
+        }
 
-        $usernameValue = Mage::getStoreConfig('facturante/connection/username');
-        $passwordValue = Mage::getStoreConfig('facturante/connection/password');
-        $businessIdValue = Mage::getStoreConfig('facturante/connection/business_id');
+//        Mage::log("Store ID: -> " . $storeId, null,'debug1.log');
+
+        /** Si aún no se ha configurado la url, entonces seteo la de testing. De ese modo permite ingresar al system config y cambiarla. */
+        $urlApi = Mage::getStoreConfig('facturante/connection/api_url', $storeId);
+        if( empty( $urlApi ) ) {
+            $urlApi = "http://testing.facturante.com/api/comprobantes.svc?wsdl";
+        }
+        $client = new SoapClient( $urlApi );
+
+        $usernameValue = Mage::getStoreConfig('facturante/connection/username', $storeId);
+        $passwordValue = Mage::getStoreConfig('facturante/connection/password', $storeId);
+        $businessIdValue = Mage::getStoreConfig('facturante/connection/business_id', $storeId);
 
         $auth = array(
             'Empresa' => $businessIdValue,
@@ -100,14 +116,20 @@ class Facturante_Invoicing_Helper_Data extends Mage_Core_Helper_Abstract
             Mage::getSingleton('core/session')->addNotice('Ya se ha generado una nota de débito para la orden Nª ' . $order->getIncrementId() . '. No es posible realizar una nueva factura o nota de crédito para esta orden.');
             return false;
         }
-
         $billingAddress = $order->getBillingAddress();
 
-        $client = new SoapClient('http://testing.facturante.com/api/Comprobantes.svc?wsdl');
+        $storeId = $order->getStoreId();
+//        Mage::log("Store ID: -> " . $storeId, null,'debug1.log');
 
-        $usernameValue = Mage::getStoreConfig('facturante/connection/username');
-        $passwordValue = Mage::getStoreConfig('facturante/connection/password');
-        $businessIdValue = Mage::getStoreConfig('facturante/connection/business_id');
+        $urlApi = Mage::getStoreConfig('facturante/connection/api_url', $storeId);
+        if( empty( $urlApi ) ) {
+            $urlApi = "http://testing.facturante.com/api/comprobantes.svc?wsdl";
+        }
+        $client = new SoapClient( $urlApi );
+
+        $usernameValue = Mage::getStoreConfig('facturante/connection/username', $storeId);
+        $passwordValue = Mage::getStoreConfig('facturante/connection/password', $storeId);
+        $businessIdValue = Mage::getStoreConfig('facturante/connection/business_id', $storeId);
 
         $auth = array(
             'Empresa' => $businessIdValue,
@@ -132,7 +154,18 @@ class Facturante_Invoicing_Helper_Data extends Mage_Core_Helper_Abstract
          */
         $customerId = $order->getCustomerId();
         $customer = Mage::getModel('customer/customer')->load($customerId);
-        $numeroDeDocumento = preg_replace('/[^0-9]/','', $customer->getData('dni_number'));
+
+        /**
+         *  @var  $configTaxVatComoDni
+         *  0: Usa campo DNI
+         *  1: Usa Tax/Vat como número de DNI
+         */
+        $configTaxVatComoDni = Mage::getStoreConfig('facturante/connection2/campo_tax_vat_dni', $storeId);
+        if( isset ( $configTaxVatComoDni ) && $configTaxVatComoDni == 1) {
+            $numeroDeDocumento = preg_replace('/[^0-9]/','', $customer->getData('taxvat'));
+        } else {
+            $numeroDeDocumento = preg_replace('/[^0-9]/','', $customer->getData('dni_number'));
+        }
 
         // Si no hay numero de documento para el customer,
         // sino asignar customer ID como numero de documento
@@ -165,7 +198,7 @@ class Facturante_Invoicing_Helper_Data extends Mage_Core_Helper_Abstract
          *  1: SI
          * @type boolean
          */
-        $percibeIva = Mage::getStoreConfig('facturante/connection3/percibe_iva');
+        $percibeIva = Mage::getStoreConfig('facturante/connection3/percibe_iva', $storeId);
 
         /**
          * Percibe IIBB?
@@ -174,7 +207,8 @@ class Facturante_Invoicing_Helper_Data extends Mage_Core_Helper_Abstract
          *
          * @type boolean
          */
-        $percibeIIBB = false;
+//        $percibeIIBB = false;
+        $percibeIIBB = 0;
 
         /**
          * Tratamiento Impositivo
@@ -195,11 +229,9 @@ class Facturante_Invoicing_Helper_Data extends Mage_Core_Helper_Abstract
 
         // Si el numero ingresado en el documento es un numero de CUIT,
         // entonces el tratamiento impositivo debe ser responsable inscripto
-        if (self::isCUIT($numeroDeDocumento))
-        {
+        if ( self::isCUIT( $numeroDeDocumento )  ) {
             $tratamientoImpositivo = 2;
         }
-
         /**
          * Enviar comprobante?
          *
@@ -207,7 +239,7 @@ class Facturante_Invoicing_Helper_Data extends Mage_Core_Helper_Abstract
          *
          * @type bool
          */
-        $enviarComprobante = Mage::getStoreConfig('facturante/connection2/enviar_comprobante');
+        $enviarComprobante = Mage::getStoreConfig('facturante/connection2/enviar_comprobante', $storeId);
 
         /**
          * Provincia
@@ -289,7 +321,7 @@ class Facturante_Invoicing_Helper_Data extends Mage_Core_Helper_Abstract
          *
          * @type int
          */
-        $prefijo = Mage::getStoreConfig('facturante/connection3/prefijo');
+        $prefijo = Mage::getStoreConfig('facturante/connection3/prefijo', $storeId);
         $longitudActual = strlen($prefijo);
         $longitudPrefijo = 4;
 
@@ -350,7 +382,7 @@ class Facturante_Invoicing_Helper_Data extends Mage_Core_Helper_Abstract
          *
          * @type int
          */
-        $bienes = Mage::getStoreConfig('facturante/connection3/bienes');
+        $bienes = Mage::getStoreConfig('facturante/connection3/bienes', $storeId);
         /**
          * Fecha de servicio facturado (desde y hasta)
          *
@@ -434,6 +466,18 @@ class Facturante_Invoicing_Helper_Data extends Mage_Core_Helper_Abstract
         // total
         // totalNeto
 
+        /**
+         *  ----- Funcionalidad GTIN -----
+         *
+         * @var  $config_modo_facturacion
+         *
+         * '' (vacio): No se ha seteado el dato en el sistem config
+         * 1: Factura Electrónica Genérica  -- AFIP RG 2485 o RG 3749
+         * 2: Factura Electrónica con Detalle -- (Mtx o Matrix) - RG 2904
+         *
+         */
+        $config_modo_facturacion = Mage::getStoreConfig('facturante/connection5/modo_facturacion', $storeId);
+
         $encabezado = array(
             "FechaHora" => $fechaHora,
             "Prefijo" => $prefijo,
@@ -459,94 +503,164 @@ class Facturante_Invoicing_Helper_Data extends Mage_Core_Helper_Abstract
             "PorcentajeIIBB" => $porcentajeIIBB
         );
 
-        $orderedItems = $order->getAllVisibleItems();
-        $orderedProductIds = array();
-        $orderedProductQtys = array();
-        $orderedProductPrice = array();
-        $orderedProductTax = array();
+        $orderedItems = $order->getItemsCollection()
+            ->addAttributeToSelect('*')
+            ->addAttributeToFilter('product_type', array('eq'=>'simple'))
+            ->load();
 
-        $preciosFinales = Mage::getStoreConfig('facturante/connection2/precios_finales');
-
-        $porcentageImpuestoProducto = 21;
-        
-        foreach ($orderedItems as $item) {
-
-            $qtyOrdered = $item->getData('qty_ordered');
-
-            if (!$preciosFinales)
-            {
-                // En este caso, el precio final de los productos no incluye los impuestos
-                // El impuesto total para el producto va a ser el monto de impuesto dividido la cantidad
-                // de productos comprados
-                $precioProducto = $item->getPrice();
-                if ($item->getTaxPercent()) {
-                    $porcentageImpuestoProducto = $item->getTaxPercent();
-                }
-            } else {
-                // Si el precio de los productos es final
-                // entonces descontar un 21% del precio del producto
-                // (multiplicar precio de los productos por 1.21)
-                $itemPrice = $item->getPrice();
-                $precioProducto = $itemPrice / 1.21;
-            }
-
-            $orderedProductIds[] = $item->getData('product_id');
-            $orderedProductQtys[] = $qtyOrdered;
-            $orderedProductPrice[] = $precioProducto;
-            $orderedProductTax[] = $porcentageImpuestoProducto;
-        }
-
-        $productCollection = Mage::getModel('catalog/product')->getCollection();
-        $productCollection->addAttributeToSelect('*');
-        $productCollection->addIdFilter($orderedProductIds);
+        $preciosFinales = Mage::getStoreConfig('facturante/connection2/precios_finales', $storeId);
 
         $items = array();
-        $currentItem = 0;
-        foreach ($productCollection as $orderedProduct)
-        {
-            $subTotal = $orderedProductPrice[$currentItem] * $orderedProductQtys[$currentItem];
-            $newOrderedItem  = array(
-                "Cantidad" => $orderedProductQtys[$currentItem],
-                "Detalle" => $orderedProduct->getShortDescription(),
-                "Codigo" => $orderedProduct->getSku(),
-                "IVA" => $orderedProductTax[$currentItem],
-                "PrecioUnitario" => $orderedProductPrice[$currentItem],
-                "Total" => ($subTotal) + $subTotal / 100 * $orderedProductTax[$currentItem],
-                "Gravado" => true,
-                "Bonificacion" => 0
-            );
+        $productosConGtinFaltantes = 0;
+        foreach ($orderedItems as $item) {
+            if( $item->getProductType() == 'simple' ) {
+                /** Se evalúa la toma de datos según el tipo de producto. */
+                if ( $item->getParentItem() ) {
+                    $price = $item->getParentItem()->getPrice();
+                    $rowDiscount = $item->getParentItem()->getDiscountAmount();
+                } else {
+                    $price = $item->getPrice();
+                    $rowDiscount = $item->getDiscountAmount();
+                }
 
-            $items[] = $newOrderedItem;
-            $currentItem++;
+//                Mage::log("Price: -> ".$price, null,'debug1.log');
+
+                $qtyOrdered = $item->getData('qty_ordered');
+
+                /** @var  $itemDiscount
+                 *  Descuento unitario del producto.
+                 * */
+                $itemDiscount = $rowDiscount / $qtyOrdered;
+
+//                Mage::log("item discount amount: -> ".$itemDiscount, null,'debug1.log');
+
+                /** @var  $finalPrice
+                 *  Precio del producto menos el descuento aplicado de forma unitaria.
+                 */
+//                $finalPrice = $price - $itemDiscount;
+                $finalPrice = $price;
+
+//                Mage::log("Discount amount: -> ".$rowDiscount, null,'debug1.log');
+
+//                Mage::log("Final Price (after discount): -> ".$finalPrice."\n", null,'debug1.log');
+
+                /** NO ES PRECIO FINAL */
+                if ( $preciosFinales == 0 ) {
+                    // En este caso, el precio final de los productos no incluye los impuestos
+                    // El impuesto total para el producto va a ser el monto de impuesto dividido la cantidad
+                    // de productos comprados
+                    /** Tax seteado en Magento
+                     *  El taxClass cuyo codigo es "0" es taxClass vacio.
+                     */
+                    $productTaxClass = $item->getProduct()->getTaxClassId();
+
+                    /** Si taxClass es 'none', dejo un 21% por default. */
+                    if ( $productTaxClass == 0 ) {
+                        $porcentageImpuestoProducto = 21;
+                    } else {
+                        /** Caso contrario, tomo el valor de la clase seleccionada. */
+                        $porcentageImpuestoProducto = $item->getTaxPercent();
+                    }
+//                    $subTotal = $finalPrice * $qtyOrdered;
+//                    $total = round( ($subTotal) + $subTotal / 100 * $porcentageImpuestoProducto, 2);
+
+                    $total = round( ( $finalPrice * $qtyOrdered ), 2 );
+                } else {
+                    /** SI ES PRECIO FINAL */
+                    // Si el precio de los productos es final
+                    // entonces descontar un 21% del precio del producto
+                    // (multiplicar precio de los productos por 1.21)
+                    $porcentageImpuestoProducto = 21;
+//                    $precioProducto = $finalPrice / 1.21;
+                    $finalPrice = $finalPrice / 1.21;
+                    $total = round( ( $finalPrice * $qtyOrdered ), 2 );
+                }
+
+                $newOrderedItem  = array(
+                    "Cantidad" => $qtyOrdered,
+                    "Detalle" => $item->getProduct()->getData('description'),
+                    "Codigo" => $item->getSku(),
+                    "IVA" => $porcentageImpuestoProducto,
+                    "PrecioUnitario" => round($finalPrice, 2),
+                    "Total" => $total,
+                    "Gravado" => true,
+                    "Bonificacion" => 0
+                );
+
+                /** Si es factura con detalle, entonces agrego dos atributos más. */
+                if( $config_modo_facturacion == 2 ) {
+                    $gtin = $item->getProduct()->getData('gtin');
+
+                    /** Me fijo que gtin tenga dato. */
+                    if( empty( $gtin ) ) {
+                        $productosConGtinFaltantes++;
+                    }
+                    $newOrderedItem['CodigoMtx'] = $gtin;
+                    $newOrderedItem['UnidadesMtx'] = $qtyOrdered;
+                }
+                $items[] = $newOrderedItem;
+            }
         }
 
-        // Agregar shipping cost al total de la orden como un item
+        // Response
+        $responseCrearComprobante = null;
+        //Agregar shipping cost al total de la orden como un item
+
+        // Agregar descuentos como valores negativos en el total de la orden como un item (si existen descuentos)
+        $discountAmount = abs($order->getDiscountAmount());
+
+        if ( $preciosFinales == 1 ) {
+            /** SI ES PRECIO FINAL */
+
+            /** Shipping */
+            $precioUnitarioShipping = $order->getShippingAmount() / 1.21;
+            $totalShipping = $order->getShippingAmount();
+            /** Discount */
+            $precioUnitarioDiscount = ( -1 * $discountAmount ) / 1.21;
+            $totalDiscount = ( -1 * $discountAmount );
+
+        } else {
+            /** NO ES PRECIO FINAL ******  */
+
+            /** Shipping */
+            $precioUnitarioShipping = $order->getShippingAmount() / 1.21;
+            $totalShipping = $order->getShippingAmount();
+            /** Discount */
+            $precioUnitarioDiscount = ( -1 * $discountAmount );
+            $totalDiscount = ( -1 * $discountAmount ) * 1.21;
+        }
+
         $shippingCost  = array(
             "Cantidad" => 1,
             "Detalle" => 'Gastos de Envío',
             "Codigo" => 'shipping',
             "IVA" => 21,
-            "PrecioUnitario" => ($order->getShippingAmount() / 1.21),
-            "Total" => ($order->getShippingAmount() / 1.21),
+            "PrecioUnitario" => round( $precioUnitarioShipping, 2),
+            "Total" => round( $totalShipping, 2),
             "Gravado" => true,
             "Bonificacion" => 0
         );
+        if( $config_modo_facturacion == 2 ) {
+            $shippingCost['CodigoMtx'] = 7790001001085;
+            $shippingCost['UnidadesMtx'] = 1;
+        }
         $items[] = $shippingCost;
 
-        // Agregar descuentos como valores negativos en el total de la orden como un item (si existen descuentos)
-        $discountAmount = abs($order->getDiscountAmount());
-        if ($discountAmount > 0)
-        {
+        if ($discountAmount > 0) {
             $discounts  = array(
                 "Cantidad" => 1,
                 "Detalle" => 'Descuentos',
                 "Codigo" => 'discounts',
-                "IVA" => 0,
-                "PrecioUnitario" => -1 * $discountAmount,
-                "Total" => -1 * $discountAmount,
-                "Gravado" => false,
+                "IVA" => 21,
+                "PrecioUnitario" => round( $precioUnitarioDiscount, 2),
+                "Total" => round( $totalDiscount, 2),
+                "Gravado" => true,
                 "Bonificacion" => 0
             );
+            if( $config_modo_facturacion == 2 ) {
+                $discounts['CodigoMtx'] = 7790001001030;
+                $discounts['UnidadesMtx'] = 1;
+            }
             $items[] = $discounts;
         }
 
@@ -561,38 +675,92 @@ class Facturante_Invoicing_Helper_Data extends Mage_Core_Helper_Abstract
         // Request
         $requestCrearComprobante = array("request" => $paramCrearComprobante);
 
-        // Response
-        $responseCrearComprobante = $client->CrearComprobanteSinImpuestos($requestCrearComprobante);
+        /** Factura electrónica genérica */
+        if ( $config_modo_facturacion == 1 ) {
+            Mage::log($requestCrearComprobante, null,'debug1.log');
+            $responseCrearComprobante = $client->CrearComprobanteSinImpuestos( $requestCrearComprobante );
+            Mage::log($responseCrearComprobante, null,'debug1.log');
+            /**
+             * Luego de la llamada para crear el comprobante, solicito los detalles del comprobante para saber en que estado se encuentra.
+             */
+            $comprobanteId = $responseCrearComprobante->CrearComprobanteSinImpuestosResult->IdComprobante;
 
-        /**
-         * Luego de la llamada para crear el comprobante, solicito los detalles del comprobante para saber en que estado se encuentra.
-         */
-        $comprobanteId = $responseCrearComprobante->CrearComprobanteSinImpuestosResult->IdComprobante;
+            if (!empty($comprobanteId)) {
+                $newInvoicingStatus = Mage::getModel('facturante_invoicing/order_invoicingstatus');
+                $newInvoicingStatus->setOrderId($order->getId());
+                $newInvoicingStatus->setOrderIncrementId($order->getIncrementId());
+                $newInvoicingStatus->setIdcomprobante($comprobanteId);
+                $detalleComprobante = $this->getDetalleComprobante($auth, $comprobanteId, $client);
+                $estadoDetalleComprobante = $detalleComprobante->DetalleComprobanteResult->Comprobante->EstadoComprobante;
 
-        if (!empty($comprobanteId)) {
-            $newInvoicingStatus = Mage::getModel('facturante_invoicing/order_invoicingstatus');
-            $newInvoicingStatus->setOrderId($order->getId());
-            $newInvoicingStatus->setOrderIncrementId($order->getIncrementId());
-            $newInvoicingStatus->setIdcomprobante($comprobanteId);
-            $detalleComprobante = $this->getDetalleComprobante($auth, $comprobanteId, $client);
-            $estadoDetalleComprobante = $detalleComprobante->DetalleComprobanteResult->Comprobante->EstadoComprobante;
-            $estadoDetalleComprobanteString = $this->getStringEstadoComprobante($estadoDetalleComprobante);
-            $newInvoicingStatus->setStatus($estadoDetalleComprobanteString);
-            if($estadoDetalleComprobante == 4)
-            {
-                $newInvoicingStatus->setLink($detalleComprobante->DetalleComprobanteResult->Comprobante->URLPDF);
+                $estadoDetalleComprobanteString = $this->getStringEstadoComprobante($estadoDetalleComprobante);
+                $newInvoicingStatus->setStatus($estadoDetalleComprobanteString);
+                if($estadoDetalleComprobante == 4) {
+                    $newInvoicingStatus->setLink($detalleComprobante->DetalleComprobanteResult->Comprobante->URLPDF);
+                }
+                /** Aqui se guarda el mensaje de respuesta de la API */
+                $detalleApiError = $this->getDetalleApiRespuesta($responseCrearComprobante->CrearComprobanteSinImpuestosResult->Mensaje);
+                $newInvoicingStatus->setComments($detalleApiError);
+                $newInvoicingStatus->setUpdateDate(now());
+                $newInvoicingStatus->save();
+
+                // Guardar nuevo estado del comprobante en columna de grilla de ordenes
+                $order->setData('facturante_invoice_status', $estadoDetalleComprobanteString);
+                $order->setData('afip_last_invoice_type', $type);
+                $order->save();
             }
-            /** Aqui se guarda el mensaje de respuesta de la API */
-            $detalleApiError = $this->getDetalleApiRespuesta($responseCrearComprobante->CrearComprobanteSinImpuestosResult->Mensaje);
-            $newInvoicingStatus->setComments($detalleApiError);
-            $newInvoicingStatus->setUpdateDate(now());
-            $newInvoicingStatus->save();
-
-            // Guardar nuevo estado del comprobante en columna de grilla de ordenes
-            $order->setData('facturante_invoice_status', $estadoDetalleComprobanteString);
-            $order->setData('afip_last_invoice_type', $type);
-            $order->save();
         }
+        /** Factura electrónica con detalle */
+        if( $config_modo_facturacion == 2 ) {
+            if( $productosConGtinFaltantes == 0 ) {
+                Mage::log($requestCrearComprobante, null,'debug1.log');
+//                die;
+                $responseCrearComprobante = $client->CrearComprobanteSinImpuestosMtx( $requestCrearComprobante );
+                Mage::log($responseCrearComprobante, null,'debug1.log');
+                /**
+                 * Luego de la llamada para crear el comprobante, solicito los detalles del comprobante para saber en que estado se encuentra.
+                 */
+                $comprobanteId = $responseCrearComprobante->CrearComprobanteSinImpuestosMtxResult->IdComprobante;
+                if (!empty($comprobanteId)) {
+                    $newInvoicingStatus = Mage::getModel('facturante_invoicing/order_invoicingstatus');
+                    $newInvoicingStatus->setOrderId($order->getId());
+                    $newInvoicingStatus->setOrderIncrementId($order->getIncrementId());
+                    $newInvoicingStatus->setIdcomprobante($comprobanteId);
+                    $detalleComprobante = $this->getDetalleComprobante($auth, $comprobanteId, $client);
+
+                    $estadoDetalleComprobante = $detalleComprobante->DetalleComprobanteResult->Comprobante->EstadoComprobante;
+
+                    $estadoDetalleComprobanteString = $this->getStringEstadoComprobante($estadoDetalleComprobante);
+                    $newInvoicingStatus->setStatus($estadoDetalleComprobanteString);
+                    if($estadoDetalleComprobante == 4) {
+                        $newInvoicingStatus->setLink($detalleComprobante->DetalleComprobanteResult->Comprobante->URLPDF);
+                    }
+                    /** Aqui se guarda el mensaje de respuesta de la API */
+                    $detalleApiError = $this->getDetalleApiRespuesta($responseCrearComprobante->CrearComprobanteSinImpuestosMtxResult->Mensaje);
+                    $newInvoicingStatus->setComments($detalleApiError);
+                    $newInvoicingStatus->setUpdateDate(now());
+                    $newInvoicingStatus->save();
+
+                    // Guardar nuevo estado del comprobante en columna de grilla de ordenes
+                    if( !empty( $estadoDetalleComprobanteString ) ) {
+                        $order->setData('facturante_invoice_status', $estadoDetalleComprobanteString);
+                    }
+                    $order->setData('afip_last_invoice_type', $type);
+                    $order->save();
+                }
+            } elseif( $productosConGtinFaltantes > 0 ) {
+                /** En caso de existir productos con gtin faltantes, evito la llamada a la api y solo realizo la devolución de un mensaje de error. */
+                $responseCrearComprobante = (Object) [
+                    'CrearComprobanteSinImpuestosMtxResult' => (Object) [
+                        'Codigo' => 'GTIN Faltante',
+                        'Estado' => 'Error',
+                        'Mensaje' => 'Existen productos agregados en la orden que no tienen su código GTIN.',
+                        'IdComprobante' => null
+                    ]
+                ];
+            }
+        }
+
         return $responseCrearComprobante;
     }
 
@@ -674,10 +842,7 @@ class Facturante_Invoicing_Helper_Data extends Mage_Core_Helper_Abstract
      * @return boolean
      */
     public function isCUIT($number) {
-        if (strlen((string)$number == 11))
-        {
-            // Si el numero tiene 11 digitos, entonces es CUIT
-            // Validar que sea valido
+        if ( strlen( strval( $number ) ) == 11 ) {
             $cuitValido = self::validarCuit($number);
             return $cuitValido;
         }
@@ -690,8 +855,7 @@ class Facturante_Invoicing_Helper_Data extends Mage_Core_Helper_Abstract
      * @param int $cuit
      * @return boolean
      */
-    public function validarCuit($cuit)
-    {
+    public function validarCuit( $cuit ) {
         $cuit = preg_replace( '/[^\d]/', '', (string) $cuit );
         if( strlen( $cuit ) != 11 ){
             return false;

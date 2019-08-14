@@ -28,9 +28,19 @@ class Facturante_Invoicing_Block_System_Config_Form_Fieldset_Connection_Test ext
         $block = Mage::app()->getLayout()->createBlock('adminhtml/widget_form_renderer_element')
             ->setTemplate('facturante/form/testconnection.phtml');
 
-        $usernameValue = Mage::getStoreConfig('facturante/connection/username');
-        $passwordValue = Mage::getStoreConfig('facturante/connection/password');
-        $businessIdValue = Mage::getStoreConfig('facturante/connection/business_id');
+        $storeId = 0;
+        if (strlen($code = Mage::getSingleton('adminhtml/config_data')->getStore())) // store level
+        {
+            $storeId = Mage::getModel('core/store')->load($code)->getId();
+        } elseif (strlen($code = Mage::getSingleton('adminhtml/config_data')->getWebsite())) // website level
+        {
+            $websiteId = Mage::getModel('core/website')->load($code)->getId();
+            $storeId = Mage::app()->getWebsite($websiteId)->getDefaultStore()->getId();
+        }
+
+        $usernameValue = Mage::getStoreConfig('facturante/connection/username', $storeId);
+        $passwordValue = Mage::getStoreConfig('facturante/connection/password', $storeId);
+        $businessIdValue = Mage::getStoreConfig('facturante/connection/business_id', $storeId);
 
         if($usernameValue != '' && $passwordValue != '' && $businessIdValue != '')
         {
