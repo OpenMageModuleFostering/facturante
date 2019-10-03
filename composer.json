@@ -1,16 +1,19 @@
 {
-    "name": "OpenMageModuleFostering/Facturante",
+    "name": "OpenMageModuleFostering\/Facturante",
     "type": "magento-module",
     "license": "GPL",
     "homepage": "",
     "description": "Facturante v. 0.1.7",
     "authors": [
-    {
-        "name": "Daniel Pili",
-        "email": "contacto@facturante.com"
-    }
-],
+        {
+            "name": "Daniel Pili",
+            "email": "contacto@facturante.com"
+        }
+    ],
     "suggest": {
-        "magento-hackathon/magento-composer-installer": "*"
-    }
+        "magento-hackathon\/magento-composer-installer": "*"
+    },
+    "keywords": [
+        "openmage-module"
+    ]
 }
